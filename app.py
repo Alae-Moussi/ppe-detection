@@ -1,28 +1,43 @@
-from fastapi import FastAPI, File, UploadFile
-from ultralytics import YOLO
+import gradio as gr
 from PIL import Image
-import io
+from ultralytics import YOLO
 
-app = FastAPI()
+# Chargement du modèle
 model = YOLO("model.pt")
 
-@app.get("/")
-def home():
-    return {"message": "API de détection EPI opérationnelle"}
 
-@app.post("/detect")
-async def detect(file: UploadFile = File(...)):
-    contents = await file.read()
-    image = Image.open(io.BytesIO(contents)).convert("RGB")
+def detect(image):
+  if image is None:
+    return None, []
 
-    results = model.predict(image, conf=0.25)
-    detections = []
+  # Inférence YOLO
+  results = model.predict(image, conf=0.25)
 
-    for box in results[0].boxes:
-        detections.append({
-            "classe": model.names[int(box.cls[0])],
-            "confiance": float(box.conf[0]),
-            "boite": box.xyxy[0].tolist()
-        })
+  # 1. Image annotée avec les boîtes
+  annotated_img = results[0].plot()
 
-    return {"detections": detections}
+  # 2. Extraction du JSON pour Laravel
+  detections = []
+  for box in results[0].boxes:
+    detections.append({
+        "classe": model.names[int(box.cls[0])],
+        "confiance": round(float(box.conf[0]), 3),
+        "boite": [round(coord, 1) for coord in box.xyxy[0].tolist()],
+    })
+
+  return annotated_img, detections
+
+
+# Interface web + API intégrée
+app = gr.Interface(
+    fn=detect,
+    inputs=gr.Image(type="pil", label="Image d'entrée (EPI)"),
+    outputs=[
+        gr.Image(type="numpy", label="Détection Visuelle"),
+        gr.JSON(label="Résultats JSON (API)"),
+    ],
+    title="Détection d'EPI - YOLOv8s-World",
+)
+
+if __name__ == "__main__":
+  app.launch()

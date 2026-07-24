@@ -1,5 +1,3 @@
-fastapi
-uvicorn
+gradio
 ultralytics
-python-multipart
 pillow
