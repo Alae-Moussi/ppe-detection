@@ -12,60 +12,75 @@ def detect(image):
   if image is None:
     return None, [], "⚠️ Aucune image fournie."
 
-  # Inférence YOLO
-  results = model.predict(image, conf=0.25)
+  # Inférence YOLO avec seuil ajusté (conf=0.15 pour attraper plus de détections)
+  results = model.predict(image, conf=0.15)
 
-  # 1. Image annotée avec les boîtes
+  # 1. Image annotée
   annotated_img = results[0].plot()
 
-  # 2. Extraction du JSON + Analyse des avertissements (Warning)
+  # 2. Construction du JSON de sortie
   detections = []
   classes_detectees = []
 
   for box in results[0].boxes:
-    nom_classe = model.names[int(box.cls[0])]
-    classes_detectees.append(nom_classe.lower())
+    nom_classe = model.names[int(box.cls[0])].lower()
+    classes_detectees.append(nom_classe)
 
     detections.append({
-        "classe": nom_classe,
+        "classe": model.names[int(box.cls[0])],
         "confiance": round(float(box.conf[0]), 3),
         "boite": [round(coord, 1) for coord in box.xyxy[0].tolist()],
     })
 
-  # 3. Logique de détection des risques (Avertissements)
+  # 3. Logique d'alerte pour CASQUE, GILET et BOTTES
   avertissements = []
 
-  # Vérification du casque (helmet)
+  # CASQUE (Helmet)
   if "no-helmet" in classes_detectees:
     avertissements.append("🚨 DANGER : Personne détectée SANS CASQUE !")
   elif "person" in classes_detectees and "helmet" not in classes_detectees:
     avertissements.append(
-        "⚠️ AVERTISSEMENT : Personne détectée mais pas de casque visible."
+        "⚠️ AVERTISSEMENT : Personne présente sans casque visible."
     )
 
-  # Vérification du gilet (vest)
+  # GILET (Vest)
   if "no-vest" in classes_detectees:
     avertissements.append("🚨 DANGER : Personne détectée SANS GILET !")
   elif "person" in classes_detectees and "vest" not in classes_detectees:
     avertissements.append(
-        "⚠️ AVERTISSEMENT : Personne détectée mais pas de gilet visible."
+        "⚠️ AVERTISSEMENT : Personne présente sans gilet visible."
     )
 
-  # Résumé de l'état de sécurité
-  if not avertissements:
-    if "person" in classes_detectees:
-      statut_securite = (
-          "✅ SÉCURITÉ CONFORME : Tous les EPI requis sont portés !"
-      )
-    else:
-      statut_securite = "ℹ️ Aucune personne détectée sur l'image."
-  else:
+  # BOTTES (Boots)
+  if "no-boots" in classes_detectees or "no-shoes" in classes_detectees:
+    avertissements.append(
+        "🚨 DANGER : Personne détectée SANS BOTTES DE SÉCURITÉ !"
+    )
+  elif "person" in classes_detectees and (
+      "boots" not in classes_detectees and "shoes" not in classes_detectees
+  ):
+    avertissements.append(
+        "⚠️ AVERTISSEMENT : Bottes de sécurité non détectées."
+    )
+
+  # Synthèse du statut
+  if avertissements:
     statut_securite = "\n".join(avertissements)
+  elif (
+      "helmet" in classes_detectees
+      or "vest" in classes_detectees
+      or "boots" in classes_detectees
+  ):
+    statut_securite = (
+        "✅ SÉCURITÉ CONFORME : Équipements de protection détectés !"
+    )
+  else:
+    statut_securite = "ℹ️ Analyse terminée : Aucun équipement ou infraction majeure détecté."
 
   return annotated_img, detections, statut_securite
 
 
-# Interface Gradio
+# Interface Gradio avec Webcam et Upload
 app = gr.Interface(
     fn=detect,
     inputs=gr.Image(
@@ -76,10 +91,10 @@ app = gr.Interface(
     outputs=[
         gr.Image(type="numpy", label="Détection Visuelle"),
         gr.JSON(label="Détails JSON (Pour API / Laravel)"),
-        gr.Textbox(label="Alerte & Sécurité (Warning)", lines=3),
+        gr.Textbox(label="Alerte & Sécurité (Warning)", lines=4),
     ],
     title="Système Anti-Accident - Détection d'EPI",
-    description="Analyse automatique de la conformité du port des équipements de protection individuelle en temps réel.",
+    description="Analyse en temps réel du port des équipements de protection (Casque, Gilet, Bottes).",
 )
 
 if __name__ == "__main__":
