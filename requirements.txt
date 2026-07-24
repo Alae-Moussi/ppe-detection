@@ -1,3 +1,4 @@
 gradio
 ultralytics
 pillow
+spaces

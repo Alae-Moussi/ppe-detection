@@ -1,22 +1,20 @@
 import gradio as gr
 from PIL import Image
+import spaces
 from ultralytics import YOLO
 
-# Chargement du modèle
 model = YOLO("model.pt")
 
 
+# On ajoute le décorateur ici pour exploiter ZeroGPU
+@spaces.GPU
 def detect(image):
   if image is None:
     return None, []
 
-  # Inférence YOLO
   results = model.predict(image, conf=0.25)
-
-  # 1. Image annotée avec les boîtes
   annotated_img = results[0].plot()
 
-  # 2. Extraction du JSON pour Laravel
   detections = []
   for box in results[0].boxes:
     detections.append({
@@ -28,7 +26,6 @@ def detect(image):
   return annotated_img, detections
 
 
-# Interface web + API intégrée
 app = gr.Interface(
     fn=detect,
     inputs=gr.Image(type="pil", label="Image d'entrée (EPI)"),
