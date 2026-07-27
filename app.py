@@ -4,10 +4,9 @@ import fastapi
 import gradio as gr
 from PIL import Image
 from ultralytics import YOLO
-import spaces  # <-- Import obligatoire pour ZeroGPU
+import spaces  # Import obligatoire pour ZeroGPU
 
-# 1. Chargement du modèle YOLO
-model = YOLO("model.pt")
+# NOTE : Ne pas charger le modèle au niveau global ici pour ZeroGPU !
 
 
 def image_to_base64(pil_img):
@@ -17,11 +16,15 @@ def image_to_base64(pil_img):
     return f"data:image/jpeg;base64,{b64_str}"
 
 
-@spaces.GPU  # <-- Indique à ZeroGPU que c'est cette fonction qui utilise le modèle
+@spaces.GPU
 def process_image(pil_image):
     if pil_image is None:
         return None, [], "⚠️ Aucune image fournie.", "normale"
 
+    # Chargement dynamique sur GPU alloué par ZeroGPU
+    model = YOLO("model.pt")
+
+    # Inférence YOLO
     results = model.predict(pil_image, conf=0.12, iou=0.45)
 
     annotated_array = results[0].plot()
@@ -67,7 +70,7 @@ def process_image(pil_image):
     return annotated_pil, detections, statut, criticite
 
 
-# 2. Application FastAPI
+# Application FastAPI
 fastapi_app = fastapi.FastAPI(title="PPE Detection API")
 
 
@@ -89,7 +92,7 @@ async def api_detect(file: fastapi.UploadFile = fastapi.File(...)):
     }
 
 
-# 3. Interface Gradio
+# Interface Gradio
 def gradio_wrapper(img):
     annotated_pil, detections, statut, _ = process_image(img)
     return annotated_pil, detections, statut
