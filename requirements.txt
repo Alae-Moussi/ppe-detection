@@ -3,4 +3,5 @@ fastapi
 python-multipart
 gradio
 pillow
-uvicorn
+unicorn
+spaces
