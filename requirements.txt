@@ -2,3 +2,5 @@ gradio
 ultralytics
 pillow
 spaces
+fastapi
+python-multipart
