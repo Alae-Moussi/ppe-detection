@@ -5,21 +5,21 @@ import gradio as gr
 from PIL import Image
 from ultralytics import YOLO
 
-# 1. Chargement du modèle YOLO
+# 1. Chargement du modèle
 model = YOLO("model.pt")
 
 
 def image_to_base64(pil_img):
   buffered = io.BytesIO()
   pil_img.save(buffered, format="JPEG")
-  return f"data:image/jpeg;base64,{base64.b64encode(buffered.getvalue()).decode('utf-8')}"
+  b64_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+  return f"data:image/jpeg;base64,{b64_str}"
 
 
 def process_image(pil_image):
   if pil_image is None:
     return None, [], "⚠️ Aucune image fournie.", "normale"
 
-  # Inférence YOLO avec seuil abaissé à 0.12
   results = model.predict(pil_image, conf=0.12, iou=0.45)
 
   annotated_array = results[0].plot()
@@ -55,15 +55,12 @@ def process_image(pil_image):
     avertissements.append("🚨 Absence de gilet de sécurité")
     criticite = "haute"
 
-  statut = (
-      " | ".join(avertissements)
-      if avertissements
-      else (
-          "✅ Équipements conformes."
-          if nb_personnes > 0
-          else "ℹ️ Aucune personne détectée."
-      )
-  )
+  if avertissements:
+    statut = " | ".join(avertissements)
+  elif nb_personnes > 0:
+    statut = "✅ Équipements conformes."
+  else:
+    statut = "ℹ️ Aucune personne détectée."
 
   return annotated_pil, detections, statut, criticite
 
