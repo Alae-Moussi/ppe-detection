@@ -4,29 +4,26 @@ import fastapi
 import gradio as gr
 from PIL import Image
 from ultralytics import YOLO
-import spaces  # <-- Requis pour ZeroGPU
+import spaces  # <-- Import obligatoire pour ZeroGPU
 
 # 1. Chargement du modèle YOLO
 model = YOLO("model.pt")
 
 
 def image_to_base64(pil_img):
-    """Convertit l'image PIL en chaîne Base64 pour l'affichage web."""
     buffered = io.BytesIO()
     pil_img.save(buffered, format="JPEG")
     b64_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
     return f"data:image/jpeg;base64,{b64_str}"
 
 
-@spaces.GPU  # <-- Empêche l'erreur de démarrage sur Hugging Face ZeroGPU
+@spaces.GPU  # <-- Indique à ZeroGPU que c'est cette fonction qui utilise le modèle
 def process_image(pil_image):
     if pil_image is None:
         return None, [], "⚠️ Aucune image fournie.", "normale"
 
-    # Inférence YOLO
     results = model.predict(pil_image, conf=0.12, iou=0.45)
 
-    # Récupération de l'image avec les boîtes dessinées
     annotated_array = results[0].plot()
     annotated_pil = Image.fromarray(annotated_array)
 
@@ -70,7 +67,7 @@ def process_image(pil_image):
     return annotated_pil, detections, statut, criticite
 
 
-# 2. Application FastAPI pour Laravel / Vue.js
+# 2. Application FastAPI
 fastapi_app = fastapi.FastAPI(title="PPE Detection API")
 
 
