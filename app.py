@@ -1,6 +1,5 @@
 import base64
 import io
-import fastapi
 import gradio as gr
 from PIL import Image
 from ultralytics import YOLO
@@ -9,21 +8,21 @@ from ultralytics import YOLO
 model = YOLO("model.pt")
 
 
-def image_to_base64(pil_img):
-  buffered = io.BytesIO()
-  pil_img.save(buffered, format="JPEG")
-  b64_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-  return f"data:image/jpeg;base64,{b64_str}"
-
-
 def process_image(pil_image):
   if pil_image is None:
-    return None, [], "⚠️ Aucune image fournie.", "normale"
+    return None, [], "⚠️ Aucune image fournie.", "normale", ""
 
+  # Inférence YOLO
   results = model.predict(pil_image, conf=0.12, iou=0.45)
 
   annotated_array = results[0].plot()
   annotated_pil = Image.fromarray(annotated_array)
+
+  # Conversion en Base64
+  buffered = io.BytesIO()
+  annotated_pil.save(buffered, format="JPEG")
+  b64_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+  image_base64 = f"data:image/jpeg;base64,{b64_str}"
 
   detections = []
   classes_detectees = []
@@ -62,45 +61,21 @@ def process_image(pil_image):
   else:
     statut = "ℹ️ Aucune personne détectée."
 
-  return annotated_pil, detections, statut, criticite
+  return annotated_pil, detections, statut, criticite, image_base64
 
 
-# 2. Application FastAPI
-fastapi_app = fastapi.FastAPI(title="PPE Detection API")
-
-
-@fastapi_app.post("/api/detect")
-async def api_detect(file: fastapi.UploadFile = fastapi.File(...)):
-  contents = await file.read()
-  image = Image.open(io.BytesIO(contents)).convert("RGB")
-
-  annotated_pil, detections, statut, criticite = process_image(image)
-  image_base64 = image_to_base64(annotated_pil)
-
-  return {
-      "success": True,
-      "criticite": criticite,
-      "rapport_securite": statut,
-      "nb_detections": len(detections),
-      "detections": detections,
-      "image_annotee": image_base64,
-  }
-
-
-# 3. Interface Gradio
-def gradio_wrapper(img):
-  annotated_pil, detections, statut, _ = process_image(img)
-  return annotated_pil, detections, statut
-
-
+# Interface Gradio standard (reconnue nativement par Hugging Face)
 demo = gr.Interface(
-    fn=gradio_wrapper,
+    fn=process_image,
     inputs=gr.Image(sources=["webcam", "upload"], type="pil"),
     outputs=[
         gr.Image(type="numpy", label="Détection Visuelle"),
         gr.JSON(label="Détails JSON"),
         gr.Textbox(label="Rapport"),
+        gr.Textbox(label="Criticite"),
+        gr.Textbox(label="Image Base64"),
     ],
+    title="PPE Detection API",
 )
 
-app = gr.mount_gradio_app(fastapi_app, demo, path="/")
+demo.launch()
