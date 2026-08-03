@@ -5,7 +5,7 @@ import gradio as gr
 from PIL import Image
 from ultralytics import YOLO
 
-# Chargement du modèle UNE SEULE FOIS au démarrage (pas de GPU dynamique sur Render)
+# Chargement du modèle UNE SEULE FOIS au démarrage
 model = YOLO("model.pt")
 
 
@@ -94,6 +94,8 @@ async def api_detect(file: fastapi.UploadFile = fastapi.File(...)):
 
 # Interface Gradio
 def gradio_wrapper(img):
+    if img is None:
+        return None, [], "⚠️ Aucune image fournie."
     annotated_pil, detections, statut, _ = process_image(img)
     return annotated_pil, detections, statut
 
@@ -102,7 +104,7 @@ demo = gr.Interface(
     fn=gradio_wrapper,
     inputs=gr.Image(sources=["webcam", "upload"], type="pil"),
     outputs=[
-        gr.Image(type="numpy", label="Détection Visuelle"),
+        gr.Image(type="pil", label="Détection Visuelle"),
         gr.JSON(label="Détails JSON"),
         gr.Textbox(label="Rapport"),
     ],
