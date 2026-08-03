@@ -110,4 +110,4 @@ demo = gr.Interface(
     ],
 )
 
-app = gr.mount_gradio_app(fastapi_app, demo, path="/")
+app = gr.mount_gradio_app(fastapi_app, demo, path="/", max_file_size="10MB")
