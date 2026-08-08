@@ -1,7 +1,9 @@
 import base64
 import io
+import os
 import fastapi
 import gradio as gr
+import uvicorn
 from PIL import Image
 from ultralytics import YOLO
 
@@ -21,17 +23,14 @@ def process_image(pil_image):
         return None, [], "⚠️ Aucune image fournie.", "normale"
 
     results = model.predict(pil_image, conf=0.12, iou=0.45)
-
     annotated_array = results[0].plot()
     annotated_pil = Image.fromarray(annotated_array)
 
     detections = []
     classes_detectees = []
-
     for box in results[0].boxes:
         nom_classe = model.names[int(box.cls[0])].lower()
         classes_detectees.append(nom_classe)
-
         detections.append({
             "classe": model.names[int(box.cls[0])],
             "confiance": round(float(box.conf[0]), 3),
@@ -78,10 +77,8 @@ async def health_check():
 async def api_detect(file: fastapi.UploadFile = fastapi.File(...)):
     contents = await file.read()
     image = Image.open(io.BytesIO(contents)).convert("RGB")
-
     annotated_pil, detections, statut, criticite = process_image(image)
     image_base64 = image_to_base64(annotated_pil)
-
     return {
         "success": True,
         "criticite": criticite,
@@ -110,4 +107,13 @@ demo = gr.Interface(
     ],
 )
 
+# Active la file d'attente Gradio (nécessaire derrière un proxy comme Render)
+demo.queue()
+
 app = gr.mount_gradio_app(fastapi_app, demo, path="/", max_file_size="10MB")
+
+
+# Point d'entrée avec port dynamique fourni par Render
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 7860))
+    uvicorn.run(app, host="0.0.0.0", port=port)
