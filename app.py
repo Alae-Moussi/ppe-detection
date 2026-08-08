@@ -110,8 +110,7 @@ demo = gr.Interface(
 # Active la file d'attente Gradio (nécessaire derrière un proxy comme Render)
 demo.queue()
 
-app = gr.mount_gradio_app(fastapi_app, demo, path="/", max_file_size="10MB")
-
+app = gr.mount_gradio_app(fastapi_app, demo, path="/")
 
 # Point d'entrée avec port dynamique fourni par Render
 if __name__ == "__main__":
