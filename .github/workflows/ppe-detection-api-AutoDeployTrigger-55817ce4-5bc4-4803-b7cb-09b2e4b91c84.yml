@@ -6,7 +6,7 @@ on:
       [ main ]
     paths:
     - '**'
-    - '.github/workflows/ppe-detection-api-AutoDeployTrigger-6798bcf4-1eef-4ff2-bd4a*.yml'
+    - '.github/workflows/ppe-detection-api-AutoDeployTrigger-6798bcf4*.yml'
 
   workflow_dispatch:      
 
