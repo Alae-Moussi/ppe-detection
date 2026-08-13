@@ -15,5 +15,5 @@ jobs:
 
       - name: Push to hub
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push --force https://PSEUDO_DE_TA_COPINE:$HF_TOKEN@huggingface.co/spaces/PSEUDO_DE_TA_COPINE/NOM_DU_SPACE main
+          pfa_token1: ${{ secrets.pfa_token1 }}
+        run: git push --force https://Oumamach:$pfa_token1@huggingface.co/spaces/Oumamach/ppe-detection main
