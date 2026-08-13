@@ -21,8 +21,8 @@ jobs:
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}
-          acrName: acrppedetection1234  # Nom unique en minuscules/chiffres uniquement
+          acrName: acrppedetection1234
           containerAppName: ppe-detection-api
           resourceGroup: rg-ppe-detection
-          location: westeurope          # Région autorisée
+          location: westeurope
           targetPort: 8000
