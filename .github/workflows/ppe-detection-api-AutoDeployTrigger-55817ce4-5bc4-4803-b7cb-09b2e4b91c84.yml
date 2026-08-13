@@ -2,20 +2,14 @@ name: Trigger auto deployment for ppe-detection-api
 
 on:
   push:
-    branches: 
-      [ main ]
-    paths:
-    - '**'
-    - '.github/workflows/ppe-detection-api-AutoDeployTrigger-6798bcf4*.yml'
-
-  workflow_dispatch:      
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout to the branch
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Azure Login
@@ -23,9 +17,12 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Build and push container image to registry
+      - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}
+          acrName: acrppedetection1234  # Nom unique en minuscules/chiffres uniquement
           containerAppName: ppe-detection-api
           resourceGroup: rg-ppe-detection
+          location: westeurope          # Région autorisée
+          targetPort: 8000
