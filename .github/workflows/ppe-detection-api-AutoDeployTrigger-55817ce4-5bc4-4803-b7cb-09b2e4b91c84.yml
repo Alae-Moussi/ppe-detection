@@ -23,6 +23,6 @@ jobs:
           appSourcePath: ${{ github.workspace }}
           acrName: acrppedetection1234
           containerAppName: ppe-detection-api
-          resourceGroup: rg-ppe-detection
+          resourceGroup: rg
           location: francecentral
           targetPort: 8000
